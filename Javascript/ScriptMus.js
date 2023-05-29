@@ -1,40 +1,62 @@
-console.log("HEllo World");
+let recordedChunks = [];
+    let recordedBlob;
+    let audioElement;
 
-const startButton = document.getElementById('startButton');
-startButton.addEventListener("click", enregistre);
+    // Access the microphone and start recording
+    function startRecording() {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(function (stream) {
+          const mediaRecorder = new MediaRecorder(stream);
 
-const finBouton = document.getElementById('finButton');
-finBouton.addEventListener("click", finEnr);
+          mediaRecorder.addEventListener('dataavailable', function (event) {
+            recordedChunks.push(event.data);
+          });
 
-let enregistrementAudioData = [];
-function enregistre(){
-    navigator.mediaDevices.getUserMedia({ audio:true})
-    .then(oui)
-    .catch(non)
-}
+          mediaRecorder.start();
+        })
+        .catch(function (error) {
+          console.error('Error accessing the microphone:', error);
+        });
+    }
 
-function finEnr() {
-    mediaRecorder.stop();
-    const enregistreBlobAudio = new Blob(enregistrementAudioData, {type: 'audio/webm'});
-    //Creation de l'element audio 
-    const elementAudio = document.createElement('audio');
-    elementAudio.src = URL.createObjectURL(enregistreBlobAudio);
-    elementAudio.controls = true;
-    document.body.appendChild(elementAudio);
+    // Stop recording and store the recorded audio in a variable
+    function stopRecording() {
+      if (recordedChunks.length === 0) {
+        console.warn('No recorded audio available.');
+        return;
+      }
 
-    enregistrementAudioData = [];
-}
+      const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+      const url = URL.createObjectURL(blob);
+      recordedBlob = blob;
 
-function oui(stream) {
-    const mediaRecorder = new MediaRecorder(stream);
-    mediaRecorder.start();
-    mediaRecorder.addEventListener('dataavailable', handleDataAvailable);
-}
+      // Create an audio element and set its source to the recorded audio
+      audioElement = new Audio(url);
+      audioElement.controls = true;
+      document.body.appendChild(audioElement);
 
-function non(error) {
-    console.error("Erreur, ne peu pas acceder au micro");
-}
+      // Enable the "Play Recording" button
+      document.getElementById('playButton').disabled = false;
 
-function handleDataAvailable(event) {
-    enregistrementAudioData.push(event.data);
-}
+      // Reset the recording chunks for a new recording
+      recordedChunks = [];
+    }
+
+    // Play the recorded audio
+    function playRecording() {
+      if (!recordedBlob) {
+        console.warn('No recorded audio available.');
+        return;
+      }
+
+      const url = URL.createObjectURL(recordedBlob);
+
+      // Update the audio element source and play the recording
+      audioElement.src = url;
+      audioElement.play();
+    }
+
+    // Event listeners for the buttons
+    document.getElementById('startButton').addEventListener('click', startRecording);
+    document.getElementById('stopButton').addEventListener('click', stopRecording);
+    document.getElementById('playButton').addEventListener('click', playRecording);
